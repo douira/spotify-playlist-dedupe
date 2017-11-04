@@ -33,42 +33,67 @@ function handleError(res) {
   };
 }
 
-//how many playlists we get at once (50 is api maximum)
-const playlistRequestAmount = 50;
-
 //gets absolutely all playlists for a specific user
-function getAllPlaylists(user, errorHandler, callback, offset, prevPlaylists) {
+function getAllItems(
+  getCall,
+   errorHandler,
+   requestAmount,
+   itemFilter,
+   callback,
+   offset,
+   prevItems
+) {
   //offset is 0 if not given
   if (typeof offset !== "number") {
     offset = 0;
   }
 
   //init as empty array if not given
-  if (typeof prevPlaylists === "undefined") {
-    prevPlaylists = [];
+  if (typeof prevItems === "undefined") {
+    prevItems = [];
   }
 
   //get playlists for user
-  spotify.getUserPlaylists(user,  {
-    limit: playlistRequestAmount, //get as many as we can
+  getCall({
+    limit: requestAmount, //get as many as we can
     offset: offset
   })
     .then((data) => {
       //add playlist items to pass-down list
-      prevPlaylists = prevPlaylists.concat(data.body.items.filter(
-        //filter out playlists that we can't edit
-        (item) => item.collaborative || item.owner.id === user));
+      prevItems = prevItems.concat(data.body.items.filter(itemFilter));
 
-      //if there are more playlists remaining than we have right now, get some more
-      if (data.body.total > offset + playlistRequestAmount) {
-        getAllPlaylists(
-          user, errorHandler, callback, offset + playlistRequestAmount, prevPlaylists);
+      //if there are more items remaining than we have right now, get some more
+      if (data.body.total > offset + requestAmount) {
+        getAllItems(
+          getCall,
+          errorHandler,
+          requestAmount,
+          itemFilter,
+          callback,
+          offset + requestAmount,
+          prevItems
+        );
       } else {
         //call callback with last api call (reached end of call stack)
-        callback(prevPlaylists);
+        callback(prevItems);
       }
     }, errorHandler);
 }
+
+//GET any page
+router.get("*", (req, res, next) => {
+  //must have code or be sending code
+  if (spotify.getAccessToken() || req.query && req.query.code) {
+    //is authed, may proceed
+    next();
+  } else {
+    //display view for auth request if necessary
+    res.render("index", {
+      title: "Authorization required",
+      authURL: spotify.createAuthorizeURL(scopes, "foobar")
+    });
+  }
+});
 
 //GET main page
 router.get("/", (req, res) => {
@@ -95,44 +120,46 @@ router.get("/", (req, res) => {
             res.redirect("/playlists");
           }, handleError(res));
       }, handleError(res));
-  } else if (spotify.getAccessToken()) {
+  } else {
     //display normal homepage
     res.render("index", {
       title: "Startpage"
-    });
-  } else {
-    //display view for auth request
-    res.render("index", {
-      title: "Authorization required",
-      authURL: spotify.createAuthorizeURL(scopes, "foobar")
     });
   }
 });
 
 //GET playlists - lists playlists that the user has write access to
 router.get("/playlists", (req, res) => {
-  //check if we have have a code
-  if (spotify.getAccessToken()) {
-    //get all playlists that this user can edit
-    getAllPlaylists(userName, handleError(res), (list) => {
+  //get all playlists that this user can edit
+  getAllItems(spotify.getUserPlaylists.bind(spotify, userName),
+    handleError(res), 50,
+    (item) => item.collaborative || item.owner.id === userName,
+    (list) => {
       //save playlists
       playlists = list;
 
       //display playlists
       res.render("playlists", {
-        title: "Playlists",
-        playlists: list
+        playlists: list,
+        title: "Pick Playlist"
       });
-    });
-  } else {
-    //go back to main page
-    res.redirect("/");
-  }
+  });
 });
 
 //GET single playlist display: calculate duplicate tracks
 router.get("/playlist/:playlistId", (req, res) => {
+  //get all tracks of this playlist
+  getAllItems(spotify.getPlaylistTracks.bind(spotify, userName, req.params.playlistId),
+    handleError(res), 100, () => true,
+    (list) => {
+      console.log(list);
 
+      //display playlists
+      res.render("playlist", {
+        tracks: list,
+        title: "Songs to Remove"
+      });
+  });
 });
 
 module.exports = router;
