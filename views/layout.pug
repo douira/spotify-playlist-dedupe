@@ -3,9 +3,11 @@ html
   head
     title= title
     link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css")
-    link(rel="stylesheet", href="/css/style.css")
+    block header
   body
-    h1=title
-    p This application is for single user use only and is merely a more convenient interface than CLI. All users using this server will be sharing auth credentials.
-    block content
+    .container
+      h1=title
+      p This application is for single user use only and is merely a more convenient interface than CLI.
+        b The server supports only one user at a time and is therefore inherently insecure in a public environment.
+      block content
     block scripts

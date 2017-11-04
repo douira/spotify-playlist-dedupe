@@ -18,16 +18,26 @@ const scopes = [
 //current user name
 let userName;
 
-//generic error handler
-function handleError(err) {
-  console.log("Something went wrong!", err);
+//gotten editable playlists
+let playlists;
+
+//makes error handler
+function handleError(res) {
+  //return function to handle errors
+  return (err) => {
+    //send back to startpage
+    res.redirect("/");
+
+    //log error
+    console.log("Something went wrong!", err);
+  };
 }
 
 //how many playlists we get at once (50 is api maximum)
 const playlistRequestAmount = 50;
 
 //gets absolutely all playlists for a specific user
-function getAllPlaylists(user, callback, offset, prevPlaylists) {
+function getAllPlaylists(user, errorHandler, callback, offset, prevPlaylists) {
   //offset is 0 if not given
   if (typeof offset !== "number") {
     offset = 0;
@@ -51,12 +61,13 @@ function getAllPlaylists(user, callback, offset, prevPlaylists) {
 
       //if there are more playlists remaining than we have right now, get some more
       if (data.body.total > offset + playlistRequestAmount) {
-        getAllPlaylists(user, callback, offset + playlistRequestAmount, prevPlaylists);
+        getAllPlaylists(
+          user, errorHandler, callback, offset + playlistRequestAmount, prevPlaylists);
       } else {
         //call callback with last api call (reached end of call stack)
         callback(prevPlaylists);
       }
-    }, handleError);
+    }, errorHandler);
 }
 
 //GET main page
@@ -82,8 +93,8 @@ router.get("/", (req, res) => {
 
             //now go back to homepage
             res.redirect("/playlists");
-          }, handleError);
-      }, handleError);
+          }, handleError(res));
+      }, handleError(res));
   } else if (spotify.getAccessToken()) {
     //display normal homepage
     res.render("index", {
@@ -103,17 +114,25 @@ router.get("/playlists", (req, res) => {
   //check if we have have a code
   if (spotify.getAccessToken()) {
     //get all playlists that this user can edit
-    getAllPlaylists(userName, (playlists) => {
+    getAllPlaylists(userName, handleError(res), (list) => {
+      //save playlists
+      playlists = list;
+
       //display playlists
       res.render("playlists", {
         title: "Playlists",
-        playlists: playlists
+        playlists: list
       });
     });
   } else {
     //go back to main page
     res.redirect("/");
   }
+});
+
+//GET single playlist display: calculate duplicate tracks
+router.get("/playlist/:playlistId", (req, res) => {
+
 });
 
 module.exports = router;

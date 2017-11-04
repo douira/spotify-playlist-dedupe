@@ -2,6 +2,6 @@ extends layout
 
 block content
   if authURL
-    a(href=authURL): h3 Click to auth
+    a(href=authURL): h4 Click to auth
   else
-    | Welcome
+    a(href="/playlists"): h5 > Playlist Overview
