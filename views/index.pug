@@ -1,8 +1,7 @@
 extends layout
 
 block content
-  h1=title
-  a(href=authURL): h3 Click to auth
-
-block scripts
-  script(src="/js/index.js")
+  if authURL
+    a(href=authURL): h3 Click to auth
+  else
+    | Welcome
