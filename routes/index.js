@@ -195,12 +195,27 @@ router.get("/playlist/:playlistId", (req, res) => {
       toRemove = Object.keys(toRemove).map(key => toRemove[key]);
 
       //display playlists
-      res.render("playlist", {
+      res.render("playlistTracks", {
         tracks: toRemove,
         title: "Songs to Remove",
         playlist: currentPlaylist
       });
   });
+});
+
+//POST whgich tracks should be removed
+router.post("/remove/:playlistId", (req, res, next) => {
+  //get the playlist object we are dealing with
+  const currentPlaylist = playlists.find(list => list.id === req.params.playlistId);
+
+  //stop if data is missing
+  if (! req.body.snapshot_id) {
+    next();
+    return;
+  }
+
+  //make list of tracks to remove
+
 });
 
 module.exports = router;

@@ -1,0 +1,50 @@
+extends layout
+
+block header
+  link(rel="stylesheet", href="/css/playlistStyle.css")
+
+block content
+  h4 Pick what duplicated songs should be removed
+  h5: a(href=playlist.external_urls.spotify)=playlist.name
+  if tracks.length
+    p Select which duplicated songs you want to remove. Click on links to go to the Spotify page for that content.
+    a.btn.waves-effect.waves-light#remove-trigger(href="!#") Remove Selected
+    form#remove-form(action="/remove/" + playlist.id method="POST")
+      input(type="hidden" name="snapshot_id" value=playlist.snapshot_id)
+      table
+        thead
+          tr
+            th Remove?
+            th Name
+            th Album
+            th Artist
+            th Song ID
+            th Added By
+            th Duration
+        tbody
+          each group in tracks
+            each item, itemIndex in group
+              tr(class=itemIndex === group.length - 1 ? "tr-border" : "")
+                td.action-container
+                  if itemIndex
+                    - const id = item.playlist_index + "_" + item.track.id
+                    input(type="checkbox" id=id checked="checked")
+                    label.hide-this(for=id)
+                  else
+                    span.grey-text Original
+                td: a(href=item.track.external_urls.spotify)=item.track.name
+                td: a(href=item.track.album.external_urls.spotify)=item.track.album.name
+                td: each artist, index in item.track.artists
+                  a(href=artist.external_urls.spotify)=artist.name
+                  if index < item.track.artists.length - 1
+                    =", "
+                td=item.track.id
+                td: a(href=item.added_by.external_urls.spotify)=item.added_by.id
+                - const seconds = Math.round(item.track.duration_ms / 1000)
+                td=Math.floor(seconds / 60) + ":" + ("00" + seconds % 60).slice(-2)
+  else
+    p Yay! No tracks duplicated!
+
+block scripts
+  script(src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous")
+  script(src="/js/playlistTracks.js")
