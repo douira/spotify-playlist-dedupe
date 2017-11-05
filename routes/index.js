@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const SpotifyWebApi = require("spotify-web-api-node");
+//const inspect = require("util").inspect;
 
 //get credientials and create api object
 const credentials = require("../credentials.json");
@@ -24,7 +25,7 @@ let playlists;
 //makes error handler
 function handleError(res) {
   //return function to handle errors
-  return (err) => {
+  return err => {
     //send back to startpage
     res.redirect("/");
 
@@ -58,7 +59,7 @@ function getAllItems(
     limit: requestAmount, //get as many as we can
     offset: offset
   })
-    .then((data) => {
+    .then(data => {
       //add playlist items to pass-down list
       prevItems = prevItems.concat(data.body.items.filter(itemFilter));
 
@@ -101,7 +102,7 @@ router.get("/", (req, res) => {
   if (req.query && req.query.code) {
     //retrieve an access token and a refresh token
     spotify.authorizationCodeGrant(req.query.code)
-      .then((data) => {
+      .then(data => {
         //console.log("The token expires in " + data.body.expires_in);
         //console.log("The access token is " + data.body.access_token);
         //console.log("The refresh token is " + data.body.refresh_token);
@@ -112,7 +113,7 @@ router.get("/", (req, res) => {
 
         //get name from api
         spotify.getMe()
-          .then((data) => {
+          .then(data => {
             //get user id (used for identification of user)
             userName = data.body.id;
 
@@ -133,8 +134,8 @@ router.get("/playlists", (req, res) => {
   //get all playlists that this user can edit
   getAllItems(spotify.getUserPlaylists.bind(spotify, userName),
     handleError(res), 50,
-    (item) => item.collaborative || item.owner.id === userName,
-    (list) => {
+    item => item.collaborative || item.owner.id === userName,
+    list => {
       //save playlists
       playlists = list;
 
@@ -148,16 +149,56 @@ router.get("/playlists", (req, res) => {
 
 //GET single playlist display: calculate duplicate tracks
 router.get("/playlist/:playlistId", (req, res) => {
+  //get the playlist object we are dealing with
+  const currentPlaylist = playlists.find(list => list.id === req.params.playlistId);
+
   //get all tracks of this playlist
-  getAllItems(spotify.getPlaylistTracks.bind(spotify, userName, req.params.playlistId),
+  getAllItems(spotify.getPlaylistTracks.bind(
+    spotify,
+    currentPlaylist.owner.id,
+    req.params.playlistId
+  ),
     handleError(res), 100, () => true,
-    (list) => {
-      console.log(list);
+    list => {
+      //make a dict of tracks and thereby find tracks that we try to add multiple times
+      const tracks = {};
+      let toRemove = {}; //tracks to be removed from the list
+      list.forEach((item, index) => {
+        //don't deal with local tracks
+        if (item.is_local) {
+          return;
+        }
+
+        //attach playlist_index to make removal by position possible
+        item.playlist_index = index;
+
+        //generate identifier from name and all artists
+        const id = item.track.name + item.track.artists.map(a => a.id).join("");
+
+        //check if entry with this id already present
+        if (tracks.hasOwnProperty(id)) {
+          //create duplication group in toRemove if not present
+          if (toRemove.hasOwnProperty(id)) {
+            //add item to group
+            toRemove[id].push(item);
+          } else {
+            //create with not to remove track and new duplicate track
+            toRemove[id] = [tracks[id], item];
+          }
+        } else {
+          //add normally to dict of known tracks
+          tracks[id] = item;
+        }
+      });
+
+      //convert to array
+      toRemove = Object.keys(toRemove).map(key => toRemove[key]);
 
       //display playlists
       res.render("playlist", {
-        tracks: list,
-        title: "Songs to Remove"
+        tracks: toRemove,
+        title: "Songs to Remove",
+        playlist: currentPlaylist
       });
   });
 });

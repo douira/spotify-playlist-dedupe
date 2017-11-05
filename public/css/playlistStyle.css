@@ -1,0 +1,12 @@
+.hide-this {
+  display: none;
+}
+
+.action-container {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.tr-border {
+  border-bottom: 1px solid #d0d0d0;
+}
