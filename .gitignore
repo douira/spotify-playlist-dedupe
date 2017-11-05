@@ -87,3 +87,6 @@ typings/
 
 # dotenv environment constiables file
 .env
+
+# do not publicly share credentials
+credentials.json
