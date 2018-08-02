@@ -1,0 +1,22 @@
+extends layout
+
+block header
+  link(rel="stylesheet", href="/css/playlistsStyle.css")
+
+block content
+  h4 What playlist should be deduped?
+  p All playlists that you can edit have been listed. Click the playlist name to open it in the Spotify player. Click the owner name to go to their profile page.
+  table.bordered
+    thead: tr
+      th Name
+      th Number of Tracks
+      th Owner
+      th Action
+    tbody
+      each item in playlists
+        tr
+          td: a(href=item.external_urls.spotify)=item.name || item.id
+          td=item.tracks.total
+          td: a(href=item.owner.external_urls.spotify)=item.owner.id
+          td.action-container: a.btn.waves-effect.waves-light(href="/playlist/" + item.id) Dedupe
+

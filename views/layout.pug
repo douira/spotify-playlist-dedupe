@@ -1,8 +1,21 @@
 doctype html
-html
+html(lang="en")
   head
-    title= title
-    link(rel="stylesheet", href="/css/style.css")
+    title=title
+    link(rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css")
+    block header
   body
-    block content
+    .container
+      h1=title
+      p This application is for single user use only and is merely a more convenient interface than CLI.
+        b The server supports only one user at a time and is therefore inherently insecure in a public environment.
+      block content
     block scripts
+    footer
+      .container
+        p Copyright © douira 2017
+          - var year = new Date().getFullYear
+          if year > 2017
+            ="-" + year
+          |  -
+          a(href="https://github.com/douira/spotify-playlist-dedupe")  Code On GitHub
