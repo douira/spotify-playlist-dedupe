@@ -11,3 +11,11 @@ html(lang="en")
         b The server supports only one user at a time and is therefore inherently insecure in a public environment.
       block content
     block scripts
+    footer
+      .container
+        p Copyright © douira 2017
+          - var year = new Date().getFullYear
+          if year > 2017
+            ="-" + year
+          |  -
+          a(href="https://github.com/douira/spotify-playlist-dedupe")  Code On GitHub

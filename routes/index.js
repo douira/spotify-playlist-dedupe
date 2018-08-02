@@ -156,7 +156,7 @@ router.get("/playlist/:playlistId", (req, res) => {
   getAllItems(spotify.getPlaylistTracks.bind(
     spotify,
     currentPlaylist.owner.id,
-    req.params.playlistId
+    currentPlaylist.id
   ),
     handleError(res), 100, () => true,
     list => {
@@ -214,8 +214,40 @@ router.post("/remove/:playlistId", (req, res, next) => {
     return;
   }
 
-  //make list of tracks to remove
+  //get snapshot id from hidden field
+  const snapshotId = req.body.snapshot_id;
+  delete req.body.snapshot_id;
 
+  //make list of track indexes to remove from post body
+  let removeTrackIndexes = Object
+    .keys(req.body) //get props of request body
+    .map(key => ({ key: key, value: req.body[key] })) //transform into key/value pair array
+    .filter(pair => pair.value) //remove false/unchecked ones
+    .map(pair => parseInt(pair.key.split("_")[0], 10)); //only use index part
+
+  //start removing at index 0
+  let startIndex = 0;
+
+  //chunk size
+  const apiCallChunkSize = 2;
+  console.log(removeTrackIndexes);
+  //remove until done removing all
+  while(startIndex) {
+    //make api call to remove sons from specified positions
+    //pass owner id and playlist id, indexes to remove and snapshot id of playlist before deleting
+    spotify.removeTracksFromPlaylistByPosition(
+      currentPlaylist.owner.id,
+      currentPlaylist.id,
+      removeTrackIndexes.slice(startIndex, startIndex + apiCallChunkSize),
+      snapshotId
+    ).catch(handleError(res));
+    console.log("call", removeTrackIndexes.slice(startIndex, startIndex + apiCallChunkSize));
+    //increment position
+    startIndex += apiCallChunkSize;
+  }
+
+  //redirect back to playlist view
+  res.redirect("/playlist/" + currentPlaylist.id);
 });
 
 module.exports = router;
